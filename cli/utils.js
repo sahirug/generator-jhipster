@@ -23,6 +23,7 @@ const meow = require('meow');
 const yeoman = require('yeoman-environment');
 const _ = require('lodash');
 const path = require('path');
+const fs = require('fs');
 
 const { normalizeBlueprintName, packageNameToNamespace, loadYoRc, loadBlueprintsFromConfiguration } = require('../generators/utils');
 
@@ -333,6 +334,10 @@ const getCurrentTimestamp = () => {
     function pad2(n) { return n < 10 ? '0' + n : n }
 };
 
+const readJsonFile = (filePath) => {
+    return JSON.parse(fs.readFileSync(filePath));
+}
+
 module.exports = {
     CLI_NAME,
     GENERATOR_NAME,
@@ -351,5 +356,6 @@ module.exports = {
     loadBlueprintCommands,
     loadSharedOptions,
     getOptionAsArgs,
-    getCurrentTimestamp
+    getCurrentTimestamp,
+    readJsonFile
 };

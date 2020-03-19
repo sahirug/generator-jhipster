@@ -1,4 +1,4 @@
-const { getOptionsFromArgs, toString, getCurrentTimestamp, logger } = require('./utils');
+const { getOptionsFromArgs, toString, getCurrentTimestamp, readJsonFile, logger } = require('./utils');
 const { fork } = require('child_process');
 const SwaggerParser = require('@apidevtools/swagger-parser');
 const jhiCore = require('jhipster-core');
@@ -11,7 +11,8 @@ class JsonSwaggerProcessor {
 
     async parseSwaggerFile() {
         try {
-            this.parsedSwagger = await SwaggerParser.validate(this.jsonFile);
+            // this.parsedSwagger = await SwaggerParser.validate(this.jsonFile);
+            this.parsedSwagger = readJsonFile(this.jsonFile);
             this.application = this.parsedSwagger.info.title.replace(/\s+/g, "");
             logger.info(`Successfully parsed received swagger file having title: ${toString(this.application)}`);
 
@@ -25,24 +26,56 @@ class JsonSwaggerProcessor {
     parseSwaggerDefinitionsToJDLEntities() {
         logger.info(`parsing swagger def to jdl entities`);
 
-        if(!this.parsedSwagger.definitions || this.parsedSwagger.definitions.length === 0) {
+        return;
+
+        if (!this.parsedSwagger.definitions || this.parsedSwagger.definitions.length === 0) {
             //todo handle empty definitions array
         }
 
         Object.keys(this.parsedSwagger).forEach(key => {
-            this.parseSingleSwaggerDefinition(this.parsedSwagger.definitions[key]);
+            this.parseSingleSwaggerDefinition(key);
         })
     }
 
-    parseSingleSwaggerDefinition(definition) {
-        if(definition.type !== 'object') {
+    parseSingleSwaggerDefinition(key) {
+        if (definition.type !== 'object') {
             return;
         }
+
+        let defaultJsonEntity = this.getDefaultJsonEntity(key);
+
+        let entityDefinition = this.parsedSwagger.definitions[key];
+        let entityProperties = entityDefinition.properties;
+
+        if (!entityProperties || entityProperties.length === 0) {
+            // todo handle empty properties array
+        }
+
+        Object.keys(entityProperties).forEach(propertyName => {
+            this.parseSwaggerPropertyToEntityFieldAndRelationship(entityProperties, propertyName);
+        })
+    }
+
+    parseSwaggerPropertyToEntityFieldAndRelationship(entityProperties, propertyName) {
+        let entityProperty = entityProperties[propertyName];
+
+        let returnObj = {};
+
+        if ("$ref" in entityProperty || "items" in entityProperty) {
+            handleRelationship(entityProperty, propertyName);
+        } else {
+            // handle basic property
+            let defaultField = this.getDefaultField(propertyName);
+            returnObj.type = 'field';
+            returnObj.value = defaultField;
+        }
+
+        return returnObj;
     }
 
     getDefaultJsonEntity(name) {
         return {
-            "name": name.charAt(0).toUpperCase() + name.slice(1),
+            "name": name.charAt(0).toUpperCase() + name.slice(1), // convert to uppercase
             "fields": [],
             "relationships": [],
             "changeLlogDate": getCurrentTimestamp(),
@@ -56,6 +89,14 @@ class JsonSwaggerProcessor {
             "embedded": false,
             "clientRootFolder": "",
             "applications": [this.application]
+        }
+    }
+
+    getDefaultField(name) {
+        return {
+            "fieldName": name,
+            "fieldType": "",
+            "fieldValidateRules": []
         }
     }
 }
@@ -76,6 +117,8 @@ module.exports = (args, options, env, forkProcess = fork) => {
     try {
         const swaggerProcessor = new JsonSwaggerProcessor(swaggerFile[0]);
         swaggerProcessor.parseSwaggerFile();
+
+        // require(`./import-jdl`)(["app.jh"], options, env); call import-jdl
     } catch (e) {
         logger.error(`Error during importing and parsing the swagger json: ${e.message}`, e)
     }
