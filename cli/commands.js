@@ -129,6 +129,10 @@ Example:
     },
     'upgrade-config': {
         desc: 'Upgrade the JHipster configuration'
+    },
+    'parse-swagger': {
+        desc: "Parses the provided swagger json to required format",
+        cliOnly: true,
     }
 };
 

@@ -327,6 +327,12 @@ const loadSharedOptions = blueprintPackagePaths => {
     return result;
 };
 
+const getCurrentTimestamp = () => {
+    return date.getFullYear().toString() + pad2(date.getMonth() + 1) + pad2( date.getDate()) + pad2( date.getHours() ) + pad2( date.getMinutes() ) + pad2( date.getSeconds() );
+
+    function pad2(n) { return n < 10 ? '0' + n : n }
+};
+
 module.exports = {
     CLI_NAME,
     GENERATOR_NAME,
@@ -344,5 +350,6 @@ module.exports = {
     getBlueprintPackagePaths,
     loadBlueprintCommands,
     loadSharedOptions,
-    getOptionAsArgs
+    getOptionAsArgs,
+    getCurrentTimestamp
 };
