@@ -288,5 +288,55 @@
             "cwd": "${workspaceFolder}/test-integration/samples/app-sample-dev/",
             "console": "integratedTerminal"
         },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "jhipster generate sample-jdl",
+            "program": "${workspaceFolder}/cli/jhipster.js",
+            "timeout": 100000,
+            "args": [
+                "import-jdl",
+                "app.jh",
+                "-d",
+                "--skip-checks",
+                "--skip-install",
+                "--skip-git",
+                "--skip-cache"
+                ],
+            "cwd": "${workspaceFolder}/test-integration/samples/app-sample-jdl/",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "jhipster generate parse-swagger",
+            "program": "${workspaceFolder}/cli/jhipster.js",
+            "timeout": 100000,
+            "args": [
+                "parse-swagger",
+                "E:\\Projects\\petstore-swagger.json",
+                "-d",
+                "--skip-checks",
+                "--skip-install",
+                "--skip-git",
+                "--skip-cache"
+                ],
+            "cwd": "${workspaceFolder}/test-integration/samples/app-sample-jdl/",
+            "console": "integratedTerminal"
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "jhipster generate export-jdl",
+            "program": "${workspaceFolder}/cli/jhipster.js",
+            "timeout": 100000,
+            "args": [
+                "export-jdl",
+                "newApp2.jh",
+                "-d"
+                ],
+            "cwd": "${workspaceFolder}/test-integration/samples/sample-export-jdl/",
+            "console": "integratedTerminal"
+        },
     ]
 }
