@@ -315,6 +315,7 @@
             "args": [
                 "parse-swagger",
                 "E:\\Projects\\petstore-swagger.json",
+                "E:\\Projects\\config.json",
                 "-d",
                 "--skip-checks",
                 "--skip-install",

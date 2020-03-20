@@ -329,6 +329,7 @@ const loadSharedOptions = blueprintPackagePaths => {
 };
 
 const getCurrentTimestamp = () => {
+    let date = new Date();
     return date.getFullYear().toString() + pad2(date.getMonth() + 1) + pad2( date.getDate()) + pad2( date.getHours() ) + pad2( date.getMinutes() ) + pad2( date.getSeconds() );
 
     function pad2(n) { return n < 10 ? '0' + n : n }
@@ -336,6 +337,10 @@ const getCurrentTimestamp = () => {
 
 const readJsonFile = (filePath) => {
     return JSON.parse(fs.readFileSync(filePath));
+}
+
+const capitalize = (word) => {
+    return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 module.exports = {
@@ -357,5 +362,6 @@ module.exports = {
     loadSharedOptions,
     getOptionAsArgs,
     getCurrentTimestamp,
-    readJsonFile
+    readJsonFile,
+    capitalize
 };
