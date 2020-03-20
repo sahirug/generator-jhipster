@@ -44,6 +44,7 @@
             "args": [
                 "-d",
                 "--skip-checks",
+                "--skip-install",
                 "--skip-git",
                 "--skip-cache"
                 ],

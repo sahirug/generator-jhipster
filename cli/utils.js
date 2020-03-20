@@ -335,8 +335,18 @@ const getCurrentTimestamp = () => {
     function pad2(n) { return n < 10 ? '0' + n : n }
 };
 
+const mkdir = (dirName) => {
+    if(!fs.existsSync(dirName)) {
+        fs.mkdirSync(dirName);
+    }
+}
+
 const readJsonFile = (filePath) => {
     return JSON.parse(fs.readFileSync(filePath));
+}
+
+const writeFile = (contents, pathToWrite) => {
+    fs.writeFileSync(pathToWrite, contents);
 }
 
 const capitalize = (word) => {
@@ -362,6 +372,8 @@ module.exports = {
     loadSharedOptions,
     getOptionAsArgs,
     getCurrentTimestamp,
+    mkdir,
     readJsonFile,
+    writeFile,
     capitalize
 };

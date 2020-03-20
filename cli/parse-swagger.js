@@ -1,7 +1,6 @@
-const { getOptionsFromArgs, toString, getCurrentTimestamp, readJsonFile, capitalize, logger } = require('./utils');
+const { getOptionsFromArgs, toString, getCurrentTimestamp, mkdir, readJsonFile, writeFile, capitalize, logger } = require('./utils');
 const { fork } = require('child_process');
-const SwaggerParser = require('@apidevtools/swagger-parser');
-const jhiCore = require('jhipster-core');
+const { convertJsonEntitiesToJDL, convertToJDL } = require('jhipster-core');
 
 const RELATIONSHIP_TYPES = {
     "1:1": "one-to-one",
@@ -12,12 +11,15 @@ const RELATIONSHIP_TYPES = {
 
 const RELATIONSHIP = "relationship";
 const FIELD = "field";
+const USER_ENTITY_NAME = 'User';
+const RESERVED_KEYWORDS = [USER_ENTITY_NAME];
 
-class JsonSwaggerProcessor {
+class SwaggerJsonProcessor {
 
     constructor(jsonFile) {
         logger.info(`Creating Json swagger processor`)
         this.jsonFile = jsonFile;
+        this.skippedUserManagement = false;
     }
 
     parseSwaggerFile() {
@@ -41,9 +43,16 @@ class JsonSwaggerProcessor {
             //todo handle empty definitions array
         }
 
-        let entities = [];
+        const entities = new Map();
 
         Object.keys(this.parsedSwagger.definitions).forEach(key => {
+
+            // skip entity if it contains key word
+            if(RESERVED_KEYWORDS.includes(key)) {
+                logger.error(`Entity name cannot contain reserved keyword [ ${key} ]. Skipping`)
+                return;
+            }
+
             let defaultJsonEntity = this.getDefaultJsonEntity(key);
 
             this.parseSingleSwaggerDefinition(key).forEach(object => {
@@ -54,8 +63,19 @@ class JsonSwaggerProcessor {
                 }
             });
 
-            entities.push(defaultJsonEntity);
+            entities.set(defaultJsonEntity.name, defaultJsonEntity);
+
+            this.skippedUserManagement = defaultJsonEntity.name === USER_ENTITY_NAME;
         })
+
+        this.jdlEntities = convertJsonEntitiesToJDL({
+            entities: entities,
+            skippedUserManagement: entities.has(USER_ENTITY_NAME)
+        });
+
+        this.persistEntitiesToJson(entities);
+
+        logger.info(`Completed parsing Swagger model definitions to JDL Entities`);
     }
 
     parseSingleSwaggerDefinition(key) {
@@ -88,12 +108,12 @@ class JsonSwaggerProcessor {
         if (RELATIONSHIP in entityProperty) {
             returnObj.type = RELATIONSHIP;
             returnObj.value = this.handleRelationship(entityProperty, propertyName, currentEntityName);
-        } else if(!["object", "array"].includes(entityProperty.type)) {
+        } else if (!["object", "array"].includes(entityProperty.type)) {
             // handle basic property
             let defaultField = this.getDefaultField(propertyName);
 
-            if("enum" in entityProperty) {
-                defaultField.fieldValues = entityProperty.enum.join(",");
+            if ("enum" in entityProperty) {
+                defaultField.fieldValues = entityProperty.enum.map((enumName) => enumName.toUpperCase()).join(",");
                 defaultField.fieldType = capitalize(propertyName);
             } else {
                 defaultField.fieldType = this.getFieldType(entityProperty.type);
@@ -162,6 +182,19 @@ class JsonSwaggerProcessor {
         }
     }
 
+    persistEntitiesToJson(entities) {
+
+        try {
+            mkdir(".jhipster");
+
+            entities.forEach((entity, entityName) => {
+                writeFile(JSON.stringify(entity), `.jhipster/${entityName}.json`)
+            })
+        } catch (e) {
+            logger.error(`An error occurred while trying to persist the entity JSONs to a file: ${e.message}`, e)
+        }
+    }
+
     getRelatingEntity(entityProperty) {
         let ref;
 
@@ -177,12 +210,12 @@ class JsonSwaggerProcessor {
     }
 
     getFieldType(type) {
-        switch(type) {
+        switch (type) {
             case "integer":
                 return "Integer";
             case "string":
-            default:    
-                return "String";    
+            default:
+                return "String";
         }
     }
 
@@ -194,6 +227,21 @@ class JsonSwaggerProcessor {
         }
 
         return relation;
+    }
+}
+
+class ConfigJsonProcessor {
+    constructor(configJson) {
+        this.configJson = configJson;
+        this.yoRcJson = {};
+    }
+
+    parseConfigJsonToJdlApplicationConfig() {
+        let configs = readJsonFile(this.configJson);
+        
+        this.yoRcJson["generator-jhipster"] = configs;
+        writeFile(JSON.stringify(this.yoRcJson), ".yo-rc.json");
+        logger.info(`done`);
     }
 }
 
@@ -211,10 +259,15 @@ module.exports = (args, options, env, forkProcess = fork) => {
     }
 
     try {
-        const swaggerProcessor = new JsonSwaggerProcessor(swaggerFile[0]);
+        const swaggerProcessor = new SwaggerJsonProcessor(swaggerFile[0]);
         swaggerProcessor.parseSwaggerFile();
 
-        // require(`./import-jdl`)(["app.jh"], options, env); call import-jdl
+        const configJsonProcessor = new ConfigJsonProcessor(swaggerFile[1]);
+        configJsonProcessor.parseConfigJsonToJdlApplicationConfig();
+
+        convertToJDL(".", "app.jh");
+
+        require(`./import-jdl`)(["app.jh"], options, env); //call import-jdl
     } catch (e) {
         logger.error(`Error during importing and parsing the swagger json: ${e.message}`, e)
     }
